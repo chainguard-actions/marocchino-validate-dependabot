@@ -1,0 +1,54 @@
+name: Test custom path and messages
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create valid dependabot.yml at custom path
+        run: |
+          mkdir -p config
+          cat > config/my-dependabot.yml << 'EOF'
+          version: 2
+          updates:
+            - package-ecosystem: "github-actions"
+              directory: "/"
+              schedule:
+                interval: "daily"
+            - package-ecosystem: "docker"
+              directory: "/"
+              schedule:
+                interval: "weekly"
+                day: "monday"
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          path: config/my-dependabot.yml
+          success_message: "All good!"
+          failure_message: "Something went wrong!"
+
+      - name: Assert no errors
+        env:
+          ACTUAL_ERRORS: ${{ steps.action.outputs.errors }}
+        run: |
+          echo "errors: $ACTUAL_ERRORS"
+          if [ -n "$ACTUAL_ERRORS" ]; then
+            echo "FAIL: expected no errors but got: $ACTUAL_ERRORS"
+            exit 1
+          fi
+          echo "PASS: no errors as expected"
+
+      - name: Assert custom success message in markdown
+        env:
+          ACTUAL_MARKDOWN: ${{ steps.action.outputs.markdown }}
+        run: |
+          echo "markdown: $ACTUAL_MARKDOWN"
+          if [ "$ACTUAL_MARKDOWN" != "All good!" ]; then
+            echo "FAIL: expected 'All good!' but got: $ACTUAL_MARKDOWN"
+            exit 1
+          fi
+          echo "PASS: custom success message present"

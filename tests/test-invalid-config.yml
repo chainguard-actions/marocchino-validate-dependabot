@@ -1,0 +1,51 @@
+name: Test invalid dependabot config
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create invalid dependabot.yml (missing required fields)
+        run: |
+          mkdir -p .github
+          cat > .github/dependabot.yml << 'EOF'
+          version: 2
+          updates:
+            - package-ecosystem: "not-a-valid-ecosystem"
+              directory: "/"
+              schedule:
+                interval: "daily"
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          path: .github/dependabot.yml
+          success_message: 'All good!'
+          failure_message: 'Errors found!'
+        continue-on-error: true
+
+      - name: Assert action failed (invalid config should fail)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" != "failure" ]; then
+            echo "FAIL: expected action to fail for invalid config, but outcome was '$OUTCOME'"
+            exit 1
+          fi
+          echo "PASS"
+
+      - name: Assert markdown output contains failure message
+        env:
+          ACTUAL: ${{ steps.action.outputs.markdown }}
+        run: |
+          echo "actual: $ACTUAL"
+          if echo "$ACTUAL" | grep -q "Errors found!"; then
+            echo "PASS: markdown contains failure message"
+          else
+            echo "FAIL: expected markdown to contain 'Errors found!' but got '$ACTUAL'"
+            exit 1
+          fi

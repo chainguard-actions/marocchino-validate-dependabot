@@ -1,0 +1,47 @@
+name: Test default success and failure messages
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create valid dependabot.yml at default path
+        run: |
+          mkdir -p .github
+          cat > .github/dependabot.yml << 'EOF'
+          version: 2
+          updates:
+            - package-ecosystem: "docker"
+              directory: "/"
+              schedule:
+                interval: "weekly"
+          EOF
+
+      - id: action
+        uses: .
+        # Use default inputs (path, success_message, failure_message)
+
+      - name: Assert markdown output is the default success message
+        env:
+          ACTUAL: ${{ steps.action.outputs.markdown }}
+        run: |
+          echo "actual: $ACTUAL"
+          EXPECTED="✅dependabot config looks good 👍"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "FAIL: expected default success message '$EXPECTED' but got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS"
+
+      - name: Assert no errors output
+        env:
+          ACTUAL: ${{ steps.action.outputs.errors }}
+        run: |
+          echo "actual: $ACTUAL"
+          if [ -n "$ACTUAL" ]; then
+            echo "FAIL: expected no errors but got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS"

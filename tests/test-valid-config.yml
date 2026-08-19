@@ -1,0 +1,49 @@
+name: Test valid dependabot config
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create valid dependabot.yml
+        run: |
+          mkdir -p .github
+          cat > .github/dependabot.yml << 'EOF'
+          version: 2
+          updates:
+            - package-ecosystem: "npm"
+              directory: "/"
+              schedule:
+                interval: "daily"
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          path: .github/dependabot.yml
+          success_message: 'All good!'
+          failure_message: 'Errors found!'
+
+      - name: Assert markdown output contains success message
+        env:
+          ACTUAL: ${{ steps.action.outputs.markdown }}
+        run: |
+          echo "actual: $ACTUAL"
+          if [ "$ACTUAL" != "All good!" ]; then
+            echo "FAIL: expected 'All good!' but got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS"
+
+      - name: Assert errors output is empty
+        env:
+          ACTUAL: ${{ steps.action.outputs.errors }}
+        run: |
+          echo "actual: $ACTUAL"
+          if [ -n "$ACTUAL" ]; then
+            echo "FAIL: expected empty errors but got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS"
