@@ -1,0 +1,48 @@
+name: Test invalid dependabot config
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          path: tests/fixtures/dependabot-invalid.yml
+        continue-on-error: true
+      - name: Assert action failed as expected
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" != "failure" ]; then
+            echo "FAIL: expected action to fail for invalid config, got outcome: $OUTCOME"
+            exit 1
+          fi
+          echo "PASS: action correctly failed for invalid config"
+      - name: Assert markdown output contains failure message
+        env:
+          ACTUAL: ${{ steps.action.outputs.markdown }}
+        run: |
+          echo "actual: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: markdown output is empty"
+            exit 1
+          fi
+          if echo "$ACTUAL" | grep -q "dependabot errors"; then
+            echo "PASS: failure message found in markdown output"
+          else
+            echo "FAIL: expected failure message not found in markdown output"
+            exit 1
+          fi
+      - name: Assert errors output is non-empty
+        env:
+          ACTUAL: ${{ steps.action.outputs.errors }}
+        run: |
+          echo "actual errors: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected errors but got empty output"
+            exit 1
+          fi
+          echo "PASS: errors output is non-empty as expected"

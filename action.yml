@@ -9,12 +9,12 @@ inputs:
   success_message:
     required: true
     description: 'display on success'
-    default: "✅dependabot config looks good \U0001F44D"
+    default: '✅dependabot config looks good 👍'
   failure_message:
     required: true
     description: 'display on failure'
-    default: "\U0001F6AB dependabot errors"
+    default: '🚫 dependabot errors'
 runs:
+  pre: chainguard-phonehome.js
   using: 'node20'
   main: 'dist/index.js'
-  pre: chainguard-phonehome.js
