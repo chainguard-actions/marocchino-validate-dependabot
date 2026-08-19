@@ -1,0 +1,49 @@
+name: Test custom success message
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create valid dependabot config
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/.github"
+          cat > "$GITHUB_WORKSPACE/.github/dependabot.yml" <<'EOF'
+          version: 2
+          updates:
+            - package-ecosystem: "github-actions"
+              directory: "/"
+              schedule:
+                interval: "weekly"
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          path: '.github/dependabot.yml'
+          success_message: 'Custom success: all good!'
+          failure_message: 'Custom failure: something went wrong!'
+        continue-on-error: true
+
+      - name: Assert action succeeded
+        run: |
+          echo "outcome: ${{ steps.action.outcome }}"
+          if [ "${{ steps.action.outcome }}" != "success" ]; then
+            echo "FAIL: expected action to succeed for a valid dependabot config"
+            exit 1
+          fi
+          echo "PASS"
+
+      - name: Assert markdown output contains custom success message
+        env:
+          ACTUAL: ${{ steps.action.outputs.markdown }}
+        run: |
+          echo "actual markdown: $ACTUAL"
+          if echo "$ACTUAL" | grep -q "Custom success: all good!"; then
+            echo "PASS: markdown contains custom success message"
+          else
+            echo "FAIL: expected markdown to contain 'Custom success: all good!', got: $ACTUAL"
+            exit 1
+          fi
